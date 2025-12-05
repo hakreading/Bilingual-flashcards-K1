@@ -1,0 +1,708 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English-Vietnamese Vocabulary Practice</title>
+    <meta name="description" content="Practice English and Vietnamese vocabulary and sentences for 4th graders, based on 12 common topics. An interactive flashcard game to improve reading and translation skills.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react": "https://esm.sh/react@18.2.0"
+      }
+    }
+    </script>
+    <style>
+      @keyframes fade-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fade-in 0.5s ease-out forwards;
+      }
+    </style>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module">
+        import React, { useState, useEffect, useMemo, useCallback } from 'react';
+        import ReactDOM from 'react-dom/client';
+
+        // --- Types & Constants ---
+        const GameState = {
+            READ: 'READ',
+            TRANSLATE: 'TRANSLATE',
+            REVEAL: 'REVEAL',
+            COMPLETE: 'COMPLETE',
+        };
+
+        const AppState = {
+            SELECT_TOPIC: 'SELECT_TOPIC',
+            PLAY_GAME: 'PLAY_GAME'
+        };
+
+        const RAW_DATA = {
+            "This is...": [
+                { en: "This is an alligator.", vi: "Đây là con cá sấu 🐊" },
+                { en: "This is an ant.", vi: "Đây là con kiến 🐜" },
+                { en: "This is an apple.", vi: "Đây là quả táo 🍎" },
+                { en: "This is a ball.", vi: "Đây là quả bóng ⚽" },
+                { en: "This is a banana.", vi: "Đây là quả chuối 🍌" },
+                { en: "This is a bear.", vi: "Đây là con gấu 🐻" },
+                { en: "This is a car.", vi: "Đây là chiếc ô tô 🚗" },
+                { en: "This is a cat.", vi: "Đây là con mèo 🐱" },
+                { en: "This is a cow.", vi: "Đây là con bò 🐄" },
+                { en: "This is a dog.", vi: "Đây là con chó 🐶" },
+                { en: "This is a drum.", vi: "Đây là cái trống 🥁" },
+                { en: "This is a duck.", vi: "Đây là con vịt 🦢" },
+                { en: "This is an ear.", vi: "Đây là cái tai 👂" },
+                { en: "This is an egg.", vi: "Đây là quả trứng 🥚" },
+                { en: "This is an elephant.", vi: "Đây là con voi 🐘" },
+                { en: "This is a fan.", vi: "Đây là cái quạt 🪭" },
+                { en: "This is a fish.", vi: "Đây là con cá 🐠" },
+                { en: "This is a frog.", vi: "Đây là con ếch 🐸" },
+                { en: "This is a gift.", vi: "Đây là món quà 🎁" },
+                { en: "This is a goat.", vi: "Đây là con dê 🐐" },
+                { en: "This is a bunch of grapes.", vi: "Đây là chùm nho 🍇" },
+                { en: "This is a hat.", vi: "Đây là cái mũ 🧢" },
+                { en: "This is a horse.", vi: "Đây là con ngựa 🐎" },
+                { en: "This is a house.", vi: "Đây là ngôi nhà 🏠" },
+                { en: "This is an ice cream.", vi: "Đây là cây kem 🍨" },
+                { en: "This is an igloo.", vi: "Đây là nhà tuyết 🏠❄️" },
+                { en: "This is an insect.", vi: "Đây là con côn trùng 🐞" },
+                { en: "This is a jar.", vi: "Đây là cái lọ 🫙" },
+                { en: "This is a jelly.", vi: "Đây là món thạch 🍮" },
+                { en: "This is a juice.", vi: "Đây là ly nước ép 🧃" },
+                { en: "This is a kangaroo.", vi: "Đây là con chuột túi 🦘" },
+                { en: "This is a key.", vi: "Đây là chìa khóa 🔑" },
+                { en: "This is a kite.", vi: "Đây là con diều 🪁" },
+                { en: "This is a lamp.", vi: "Đây là cái đèn 🪔" },
+                { en: "This is a leaf.", vi: "Đây là chiếc lá 🍃" },
+                { en: "This is a lion.", vi: "Đây là con sư tử 🦁" },
+                { en: "This is some milk.", vi: "Đây là ít sữa 🥛" },
+                { en: "This is the moon.", vi: "Đây là mặt trăng 🌙" },
+                { en: "This is a monkey.", vi: "Đây là con khỉ 🐒" },
+                { en: "This is a net.", vi: "Đây là cái lưới 🕸️" },
+                { en: "This is a nest.", vi: "Đây là cái tổ 🪺" },
+                { en: "This is a nose.", vi: "Đây là cái mũi 👃" },
+                { en: "This is an octopus.", vi: "Đây là con bạch tuộc 🐙" },
+                { en: "This is an orange.", vi: "Đây là quả cam 🍊" },
+                { en: "This is an owl.", vi: "Đây là con cú 🦉" },
+                { en: "This is a pen.", vi: "Đây là cây bút 🖋️" },
+                { en: "This is a pig.", vi: "Đây là con lợn 🐷" },
+                { en: "This is a pizza.", vi: "Đây là cái pizza 🍕" },
+                { en: "This is a quail.", vi: "Đây là con chim cút 🐦" },
+                { en: "This is a queen.", vi: "Đây là nữ hoàng 👑" },
+                { en: "This is a quilt.", vi: "Đây là cái chăn 🛏️" },
+                { en: "This is a rabbit.", vi: "Đây là con thỏ 🐰" },
+                { en: "This is the rain.", vi: "Đây là cơn mưa ☔" },
+                { en: "This is a robot.", vi: "Đây là con robot 🤖" },
+                { en: "This is a sock.", vi: "Đây là cái tất 🧦" },
+                { en: "This is a star.", vi: "Đây là ngôi sao ⭐" },
+                { en: "This is the sun.", vi: "Đây là mặt trời ☀️" },
+                { en: "This is a table.", vi: "Đây là cái bàn 🪑" },
+                { en: "This is a tiger.", vi: "Đây là con hổ 🐅" },
+                { en: "This is a turtle.", vi: "Đây là con rùa 🐢" },
+                { en: "This is an umbrella.", vi: "Đây là cái ô ☂️" },
+                { en: "This is a unicorn.", vi: "Đây là con kỳ lân 🦄" },
+                { en: "This is a uniform.", vi: "Đây là bộ đồng phục 👕" },
+                { en: "This is a van.", vi: "Đây là chiếc xe tải 🚐" },
+                { en: "This is a vest.", vi: "Đây là áo vest 🦺" },
+                { en: "This is a violin.", vi: "Đây là đàn violin 🎻" },
+                { en: "This is a watch.", vi: "Đây là đồng hồ ⌚" },
+                { en: "This is a whale.", vi: "Đây là con cá voi 🐳" },
+                { en: "This is a window.", vi: "Đây là cửa sổ 🪟" },
+                { en: "This is an x-ray.", vi: "Đây là tia X ☢️" },
+                { en: "This is a xylophone.", vi: "Đây là đàn xylophone 🎹" },
+                { en: "This is a yak.", vi: "Đây là con bò Tây Tạng 🦬" },
+                { en: "This is something yellow.", vi: "Đây là thứ màu vàng 💛" },
+                { en: "This is a yo-yo.", vi: "Đây là con yo-yo 🪀" },
+                { en: "This is a zebra.", vi: "Đây là con ngựa vằn 🦓" },
+                { en: "This is a zip.", vi: "Đây là khóa kéo 🤐" },
+                { en: "This is a zoo.", vi: "Đây là sở thú 🦒" }
+            ],
+            "Like, Love & Have": [
+                { en: "I have one pen.", vi: "Tôi có một cây bút 🖊️" },
+                { en: "I have two books.", vi: "Tôi có hai cuốn sách 📚" },
+                { en: "I have three cats.", vi: "Tôi có ba con mèo 🐱" },
+                { en: "I have four pencils.", vi: "Tôi có bốn cây bút chì ✏️" },
+                { en: "I have five crayons.", vi: "Tôi có năm cây bút màu 🖍️" },
+                { en: "I have six bags.", vi: "Tôi có sáu cái túi 👜" },
+                { en: "I have seven toys.", vi: "Tôi có bảy món đồ chơi 🧸" },
+                { en: "I have eight rulers.", vi: "Tôi có tám cây thước 📏" },
+                { en: "I have nine books.", vi: "Tôi có chín cuốn sách 📚" },
+                { en: "I have ten pens.", vi: "Tôi có mười cây bút 🖊️" },
+                { en: "I like red.", vi: "Tôi thích màu đỏ ❤️" },
+                { en: "I like blue.", vi: "Tôi thích màu xanh lam 💙" },
+                { en: "I like yellow.", vi: "Tôi thích màu vàng 💛" },
+                { en: "I like green.", vi: "Tôi thích màu xanh lá 💚" },
+                { en: "I like black.", vi: "Tôi thích màu đen 🖤" },
+                { en: "I like white.", vi: "Tôi thích màu trắng 🤍" },
+                { en: "I like pink.", vi: "Tôi thích màu hồng 💗" },
+                { en: "I like brown.", vi: "Tôi thích màu nâu 🤎" },
+                { en: "I like orange.", vi: "Tôi thích màu cam 🧡" },
+                { en: "I like purple.", vi: "Tôi thích màu tím 💜" },
+                { en: "I like grey.", vi: "Tôi thích màu xám 🩶" },
+                { en: "I like light blue.", vi: "Tôi thích màu xanh nhạt 🩵" },
+                { en: "I like dark green.", vi: "Tôi thích màu xanh đậm 🌲" },
+                { en: "I like dogs.", vi: "Tôi thích chó 🐶" },
+                { en: "I like cats.", vi: "Tôi thích mèo 🐱" },
+                { en: "I like birds.", vi: "Tôi thích chim 🐦" },
+                { en: "I like fish.", vi: "Tôi thích cá 🐠" },
+                { en: "I like ducks.", vi: "Tôi thích vịt 🦢" },
+                { en: "I like chickens.", vi: "Tôi thích gà 🐔" },
+                { en: "I like cows.", vi: "Tôi thích bò 🐄" },
+                { en: "I like pigs.", vi: "Tôi thích lợn 🐷" },
+                { en: "I like horses.", vi: "Tôi thích ngựa 🐎" },
+                { en: "I like sheep.", vi: "Tôi thích cừu 🐑" },
+                { en: "I like lions.", vi: "Tôi thích sư tử 🦁" },
+                { en: "I like tigers.", vi: "Tôi thích hổ 🐅" },
+                { en: "I like elephants.", vi: "Tôi thích voi 🐘" },
+                { en: "I like monkeys.", vi: "Tôi thích khỉ 🐒" },
+                { en: "I like bears.", vi: "Tôi thích gấu 🐻" },
+                { en: "I have a book.", vi: "Tôi có một cuốn sách 📖" },
+                { en: "I have a pen.", vi: "Tôi có một cây bút 🖋️" },
+                { en: "I have a pencil.", vi: "Tôi có một cây bút chì ✏️" },
+                { en: "I have an eraser.", vi: "Tôi có một cục tẩy 🧽" },
+                { en: "I have a ruler.", vi: "Tôi có một cây thước 📏" },
+                { en: "I have a bag.", vi: "Tôi có một cái túi 👜" },
+                { en: "I have a notebook.", vi: "Tôi có một cuốn sổ tay 📓" },
+                { en: "I have a sharpener.", vi: "Tôi có một cái gọt bút chì ✂️" },
+                { en: "I have a board.", vi: "Tôi có một bảng 🖼️" },
+                { en: "I have chalk.", vi: "Tôi có phấn viết bảng 🧑‍🏫" },
+                { en: "I have a desk.", vi: "Tôi có một cái bàn 🪑" },
+                { en: "I have a chair.", vi: "Tôi có một cái ghế 🪑" },
+                { en: "I have a crayon.", vi: "Tôi có một cây bút màu 🖍️" },
+                { en: "I have glue.", vi: "Tôi có keo dán 🧴" },
+                { en: "I have scissors.", vi: "Tôi có một cái kéo ✂️" },
+                { en: "I have English lessons.", vi: "Tôi có các buổi học tiếng Anh 📚" },
+                { en: "I love English.", vi: "Tôi yêu tiếng Anh ❤️" },
+                { en: "I have a pencil.", vi: "Tôi có một cây bút chì. ✏️" },
+                { en: "I have a book.", vi: "Tôi có một quyển sách. 📖" },
+                { en: "I have an eraser.", vi: "Tôi có một cục tẩy. 🧼" },
+                { en: "I have a ruler.", vi: "Tôi có một cây thước. 📏" },
+                { en: "I have a school bag.", vi: "Tôi có một cái cặp đi học. 🎒" },
+                { en: "I have a teddy bear.", vi: "Tôi có một con gấu bông. 🧸" },
+                { en: "I have a toy car.", vi: "Tôi có một chiếc ô tô đồ chơi. 🚗" },
+                { en: "I have a robot.", vi: "Tôi có một con rô-bốt. 🤖" },
+                { en: "I have a ball.", vi: "Tôi có một quả bóng. ⚽" },
+                { en: "I have a doll.", vi: "Tôi có một con búp bê. 🎎" },
+                { en: "I have a dog.", vi: "Tôi có một con chó. 🐶" },
+                { en: "I have a cat.", vi: "Tôi có một con mèo. 🐱" },
+                { en: "I have a fish.", vi: "Tôi có một con cá. 🐠" },
+                { en: "I have a bird.", vi: "Tôi có một con chim. 🐦" },
+                { en: "I have a rabbit.", vi: "Tôi có một con thỏ. 🐰" },
+                { en: "I have an apple.", vi: "Tôi có một quả táo. 🍎" },
+                { en: "I have a banana.", vi: "Tôi có một quả chuối. 🍌" },
+                { en: "I have a sandwich.", vi: "Tôi có một cái bánh mì kẹp. 🥪" },
+                { en: "I have a cake.", vi: "Tôi có một cái bánh ngọt. 🍰" },
+                { en: "I have a drink.", vi: "Tôi có một đồ uống. 🥤" }
+            ],
+            "Alphabet": [
+                { en: "A is for alligator.", vi: "A là A trong từ alligator. 🐊" },
+                { en: "A is for ant.", vi: "A là A trong từ ant. 🐜" },
+                { en: "A is for apple.", vi: "A là A trong từ apple. 🍎" },
+                { en: "B is for ball.", vi: "B là B trong từ ball. ⚽" },
+                { en: "B is for banana.", vi: "B là B trong từ banana. 🍌" },
+                { en: "B is for bear.", vi: "B là B trong từ bear. 🐻" },
+                { en: "C is for car.", vi: "C là C trong từ car. 🚗" },
+                { en: "C is for cat.", vi: "C là C trong từ cat. 🐱" },
+                { en: "C is for cow.", vi: "C là C trong từ cow. 🐮" },
+                { en: "D is for dog.", vi: "D là D trong từ dog. 🐶" },
+                { en: "D is for drum.", vi: "D là D trong từ drum. 🥁" },
+                { en: "D is for duck.", vi: "D là D trong từ duck. 🦆" },
+                { en: "E is for ear.", vi: "E là E trong từ ear. 👂" },
+                { en: "E is for egg.", vi: "E là E trong từ egg. 🥚" },
+                { en: "E is for elephant.", vi: "E là E trong từ elephant. 🐘" },
+                { en: "F is for fish.", vi: "F là F trong từ fish. 🐠" },
+                { en: "F is for frog.", vi: "F là F trong từ frog. 🐸" },
+                { en: "G is for gift.", vi: "G là G trong từ gift. 🎁" },
+                { en: "G is for goat.", vi: "G là G trong từ goat. 🐐" },
+                { en: "G is for grapes.", vi: "G là G trong từ grapes. 🍇" },
+                { en: "H is for hat.", vi: "H là H trong từ hat. 👒" },
+                { en: "H is for horse.", vi: "H là H trong từ horse. 🐴" },
+                { en: "H is for house.", vi: "H là H trong từ house. 🏠" },
+                { en: "I is for ice cream.", vi: "I là I trong từ ice cream. 🍦" },
+                { en: "I is for insect.", vi: "I là I trong từ insect. 🐞" },
+                { en: "K is for kangaroo.", vi: "K là K trong từ kangaroo. 🦘" },
+                { en: "K is for key.", vi: "K là K trong từ key. 🔑" },
+                { en: "K is for kite.", vi: "K là K trong từ kite. 🪁" },
+                { en: "L is for leaf.", vi: "L là L trong từ leaf. 🍃" },
+                { en: "L is for lion.", vi: "L là L trong từ lion. 🦁" },
+                { en: "M is for milk.", vi: "M là M trong từ milk. 🥛" },
+                { en: "M is for moon.", vi: "M là M trong từ moon. 🌙" },
+                { en: "M is for monkey.", vi: "M là M trong từ monkey. 🐒" },
+                { en: "N is for net.", vi: "N là N trong từ net. 🕸️" },
+                { en: "N is for nose.", vi: "N là N trong từ nose. 👃" },
+                { en: "O is for octopus.", vi: "O là O trong từ octopus. 🐙" },
+                { en: "O is for orange.", vi: "O là O trong từ orange. 🍊" },
+                { en: "O is for owl.", vi: "O là O trong từ owl. 🦉" },
+                { en: "P is for pen.", vi: "P là P trong từ pen. 🖊️" },
+                { en: "P is for pig.", vi: "P là P trong từ pig. 🐷" },
+                { en: "P is for pizza.", vi: "P là P trong từ pizza. 🍕" },
+                { en: "R is for rabbit.", vi: "R là R trong từ rabbit. 🐰" },
+                { en: "R is for robot.", vi: "R là R trong từ robot. 🤖" },
+                { en: "S is for sock.", vi: "S là S trong từ sock. 🧦" },
+                { en: "S is for star.", vi: "S là S trong từ star. ⭐" },
+                { en: "S is for sun.", vi: "S là S trong từ sun. ☀️" },
+                { en: "T is for tiger.", vi: "T là T trong từ tiger. 🐯" },
+                { en: "T is for turtle.", vi: "T là T trong từ turtle. 🐢" },
+                { en: "U is for umbrella.", vi: "U là U trong từ umbrella. ☂️" },
+                { en: "U is for unicorn.", vi: "U là U trong từ unicorn. 🦄" },
+                { en: "U is for uniform.", vi: "U là U trong từ uniform. 👕" },
+                { en: "V is for van.", vi: "V là V trong từ van. 🚐" },
+                { en: "V is for violin.", vi: "V là V trong từ violin. 🎻" },
+                { en: "W is for watch.", vi: "W là W trong từ watch. ⌚" },
+                { en: "W is for whale.", vi: "W là W trong từ whale. 🐳" },
+                { en: "Y is for yo-yo.", vi: "Y là Y trong từ yo-yo. 🪀" },
+                { en: "Z is for zebra.", vi: "Z là Z trong từ zebra. 🦓" }
+            ],
+            "I Want...": [
+                { en: "I want to play.", vi: "Tôi muốn chơi. 🎮" },
+                { en: "I want to eat.", vi: "Tôi muốn ăn. 🍔" },
+                { en: "I want to drink.", vi: "Tôi muốn uống. 🥤" },
+                { en: "I want to sleep.", vi: "Tôi muốn ngủ. 😴" },
+                { en: "I want to read.", vi: "Tôi muốn đọc. 📖" },
+                { en: "I want to write.", vi: "Tôi muốn viết. ✍️" },
+                { en: "I want to draw.", vi: "Tôi muốn vẽ. 🎨" },
+                { en: "I want to sing.", vi: "Tôi muốn hát. 🎤" },
+                { en: "I want to dance.", vi: "Tôi muốn nhảy. 💃" },
+                { en: "I want to run.", vi: "Tôi muốn chạy. 🏃" },
+                { en: "I want to jump.", vi: "Tôi muốn nhảy. 🤸" },
+                { en: "I want to swim.", vi: "Tôi muốn bơi. 🏊" },
+                { en: "I want to watch TV.", vi: "Tôi muốn xem TV. 📺" },
+                { en: "I want to learn.", vi: "Tôi muốn học. 🧠" },
+                { en: "I want to go home.", vi: "Tôi muốn về nhà. 🏠" },
+                { en: "I want to help.", vi: "Tôi muốn giúp đỡ. 🤝" },
+                { en: "I want to open the door.", vi: "Tôi muốn mở cửa. 🚪" },
+                { en: "I want to close the book.", vi: "Tôi muốn đóng sách lại. 📕" },
+                { en: "I want to buy a toy.", vi: "Tôi muốn mua một món đồ chơi. 🧸" },
+                { en: "I want to see my mom.", vi: "Tôi muốn gặp mẹ tôi. 👩‍👧" },
+                { en: "I want to play with my friends.", vi: "Tôi muốn chơi với bạn bè của tôi. 🧑‍🤝‍🧑" },
+                { en: "I want to eat ice cream.", vi: "Tôi muốn ăn kem. 🍦" },
+                { en: "I want to drink milk.", vi: "Tôi muốn uống sữa. 🥛" },
+                { en: "I want to sleep in my bed.", vi: "Tôi muốn ngủ trên giường của tôi. 🛏️" },
+                { en: "I want to read a book.", vi: "Tôi muốn đọc một quyển sách. 📚" },
+                { en: "I want to write my name.", vi: "Tôi muốn viết tên của tôi. ✍️" },
+                { en: "I want to draw a cat.", vi: "Tôi muốn vẽ một con mèo. 🐈" },
+                { en: "I want to sing a song.", vi: "Tôi muốn hát một bài hát. 🎶" },
+                { en: "I want to dance with my sister.", vi: "Tôi muốn nhảy với chị gái của tôi. 💃" },
+                { en: "I want to run in the park.", vi: "Tôi muốn chạy trong công viên. 🏃" },
+                { en: "I want to jump high.", vi: "Tôi muốn nhảy cao. 🤸" },
+                { en: "I want to swim in the pool.", vi: "Tôi muốn bơi trong hồ bơi. 🏊" },
+                { en: "I want to watch cartoons.", vi: "Tôi muốn xem phim hoạt hình. 📺" },
+                { en: "I want to learn English.", vi: "Tôi muốn học tiếng Anh. 🇬🇧" },
+                { en: "I want to go to school.", vi: "Tôi muốn đi học. 🏫" },
+                { en: "I want to help my dad.", vi: "Tôi muốn giúp bố tôi. 👨‍👧" },
+                { en: "I want to open my bag.", vi: "Tôi muốn mở cặp của tôi. 🎒" },
+                { en: "I want to close the window.", vi: "Tôi muốn đóng cửa sổ. 🪟" },
+                { en: "I want to buy some candy.", vi: "Tôi muốn mua một ít kẹo. 🍬" },
+                { en: "I want to see my teacher.", vi: "Tôi muốn gặp giáo viên của tôi. 👩‍🏫" }
+            ],
+            "I Like...": [
+                { en: "I like apples.", vi: "Tôi thích táo. 🍎" },
+                { en: "I like bananas.", vi: "Tôi thích chuối. 🍌" },
+                { en: "I like milk.", vi: "Tôi thích sữa. 🥛" },
+                { en: "I like cats.", vi: "Tôi thích mèo. 🐈" },
+                { en: "I like dogs.", vi: "Tôi thích chó. 🐕" },
+                { en: "I like my school.", vi: "Tôi thích trường của tôi. 🏫" },
+                { en: "I like my teacher.", vi: "Tôi quý cô giáo của tôi. 👩‍🏫" },
+                { en: "I like my friends.", vi: "Tôi quý bạn bè của tôi. 🧑‍🤝‍🧑" },
+                { en: "I like music.", vi: "Tôi thích âm nhạc. 🎵" },
+                { en: "I like books.", vi: "Tôi thích sách. 📚" },
+                { en: "I like rice.", vi: "Tôi thích cơm. 🍚" },
+                { en: "I like fish.", vi: "Tôi thích cá. 🐟" },
+                { en: "I like birds.", vi: "Tôi thích chim. 🐦" },
+                { en: "I like flowers.", vi: "Tôi thích hoa. 🌸" },
+                { en: "I like the sun.", vi: "Tôi thích mặt trời. ☀️" },
+                { en: "I like the moon.", vi: "Tôi thích mặt trăng. 🌙" },
+                { en: "I like the stars.", vi: "Tôi thích những ngôi sao. ⭐" },
+                { en: "I like my room.", vi: "Tôi thích phòng của tôi. 🛌" },
+                { en: "I like my shoes.", vi: "Tôi thích giày của tôi. 👟" },
+                { en: "I like my bike.", vi: "Tôi thích xe đạp của tôi. 🚲" }
+            ],
+            "I Can...": [
+                { en: "I can run.", vi: "Tôi có thể chạy. 🏃" },
+                { en: "I can jump.", vi: "Tôi có thể nhảy. 🤸" },
+                { en: "I can swim.", vi: "Tôi có thể bơi. 🏊" },
+                { en: "I can draw.", vi: "Tôi có thể vẽ. 🎨" },
+                { en: "I can sing.", vi: "Tôi có thể hát. 🎤" },
+                { en: "I can dance.", vi: "Tôi có thể nhảy. 💃" },
+                { en: "I can read.", vi: "Tôi có thể đọc. 📖" },
+                { en: "I can write.", vi: "Tôi có thể viết. ✍️" },
+                { en: "I can ride a bike.", vi: "Tôi có thể đi xe đạp. 🚲" },
+                { en: "I can play football.", vi: "Tôi có thể chơi bóng đá. ⚽" },
+                { en: "I can draw a flower.", vi: "Tôi có thể vẽ một bông hoa. 🌸" },
+                { en: "I can color a picture.", vi: "Tôi có thể tô màu một bức tranh. 🖍️" },
+                { en: "I can count to ten.", vi: "Tôi có thể đếm đến mười. 🔟" },
+                { en: "I can clap my hands.", vi: "Tôi có thể vỗ tay. 👏" },
+                { en: "I can smile.", vi: "Tôi có thể cười. 😊" },
+                { en: "I can stand up.", vi: "Tôi có thể đứng lên. 🧍" },
+                { en: "I can sit down.", vi: "Tôi có thể ngồi xuống. 🪑" },
+                { en: "I can read a story.", vi: "Tôi có thể đọc một câu chuyện. 📖" },
+                { en: "I can jump rope.", vi: "Tôi có thể nhảy dây. 🤸" },
+                { en: "I can kick a ball.", vi: "Tôi có thể đá một quả bóng. ⚽" }
+            ],
+            "This is / That is...": [
+                { en: "This is my bag.", vi: "Đây là cặp của tôi. 🎒" },
+                { en: "This is my book.", vi: "Đây là sách của tôi. 📖" },
+                { en: "This is my pen.", vi: "Đây là bút của tôi. 🖊️" },
+                { en: "This is my chair.", vi: "Đây là ghế của tôi. 🪑" },
+                { en: "This is my hat.", vi: "Đây là mũ của tôi. 👒" },
+                { en: "That is my house.", vi: "Kia là nhà của tôi. 🏠" },
+                { en: "That is my school.", vi: "Kia là trường của tôi. 🏫" },
+                { en: "That is my mom.", vi: "Kia là mẹ của tôi. 👩‍👧" },
+                { en: "That is my dad.", vi: "Kia là bố của tôi. 👨‍👧" },
+                { en: "That is my toy.", vi: "Kia là đồ chơi của tôi. 🧸" },
+                { en: "This is my table.", vi: "Đây là bàn của tôi. 🍽️" },
+                { en: "This is my cup.", vi: "Đây là cốc của tôi. 🥤" },
+                { en: "This is my plate.", vi: "Đây là đĩa của tôi. 🍽️" },
+                { en: "This is my toy car.", vi: "Đây là ô tô đồ chơi của tôi. 🚗" },
+                { en: "This is my teddy bear.", vi: "Đây là gấu bông của tôi. 🧸" },
+                { en: "That is my school bag.", vi: "Kia là cặp đi học của tôi. 🎒" },
+                { en: "That is my playground.", vi: "Kia là sân chơi của tôi. 🛝" },
+                { en: "That is my ball.", vi: "Kia là quả bóng của tôi. ⚽" },
+                { en: "That is my bike.", vi: "Kia là xe đạp của tôi. 🚲" },
+                { en: "That is my bed.", vi: "Kia là giường của tôi. 🛌" }
+            ],
+            "I Have...": [
+                { en: "I have a cat.", vi: "Tôi có một con mèo. 🐈" },
+                { en: "I have a dog.", vi: "Tôi có một con chó. 🐕" },
+                { en: "I have a ball.", vi: "Tôi có một quả bóng. ⚽" },
+                { en: "I have a kite.", vi: "Tôi có một con diều. 🪁" },
+                { en: "I have a bike.", vi: "Tôi có một chiếc xe đạp. 🚲" },
+                { en: "I have a doll.", vi: "Tôi có một con búp bê. 🎎" },
+                { en: "I have a red bag.", vi: "Tôi có một chiếc cặp màu đỏ. 🎒" },
+                { en: "I have two pencils.", vi: "Tôi có hai cây bút chì. ✏️" },
+                { en: "I have three books.", vi: "Tôi có ba quyển sách. 📚" },
+                { en: "I have ten pencils.", vi: "Tôi có mười cây bút chì. ✏️" },
+                { en: "I have a red apple.", vi: "Tôi có một quả táo đỏ. 🍎" },
+                { en: "I have a yellow hat.", vi: "Tôi có một chiếc mũ màu vàng. 👒" },
+                { en: "I have a blue pen.", vi: "Tôi có một cây bút màu xanh. 🖊️" },
+                { en: "I have a big ball.", vi: "Tôi có một quả bóng to. ⚽" },
+                { en: "I have a small kite.", vi: "Tôi có một con diều nhỏ. 🪁" },
+                { en: "I have a happy family.", vi: "Tôi có một gia đình hạnh phúc. 👨‍👩‍👧‍👦" },
+                { en: "I have two eyes.", vi: "Tôi có hai mắt. 👀" },
+                { en: "I have two hands.", vi: "Tôi có hai tay. 🙌" },
+                { en: "I have ten fingers.", vi: "Tôi có mười ngón tay. 🖐️" },
+                { en: "I have a new book.", vi: "Tôi có một quyển sách mới. 📖" }
+            ]
+        };
+
+        const TOPICS_DATA = Object.entries(RAW_DATA).map(([title, pairs]) => ({
+            title,
+            pairs: pairs.map(p => ({ english: p.en, vietnamese: p.vi }))
+        }));
+
+        // --- App Component ---
+        const SpeakerIcon = ({ className }) => (
+            React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: className || "h-6 w-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
+                React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" })
+            )
+        );
+
+        const App = () => {
+            const [appState, setAppState] = useState(AppState.SELECT_TOPIC);
+            const [selectedTopic, setSelectedTopic] = useState(null);
+
+            const [sentences, setSentences] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [gameState, setGameState] = useState(GameState.READ);
+            const [isSpeaking, setIsSpeaking] = useState(false);
+            const [voices, setVoices] = useState([]);
+            const [selectedVoiceURI, setSelectedVoiceURI] = useState(null);
+            
+            const canSpeak = 'speechSynthesis' in window;
+
+            // Load voices
+            useEffect(() => {
+                if (!canSpeak) return;
+
+                const loadVoices = () => {
+                    const allVoices = window.speechSynthesis.getVoices();
+                    const sortedVoices = allVoices.sort((a, b) => {
+                        const aEn = a.lang.includes('en');
+                        const bEn = b.lang.includes('en');
+                        if (aEn && !bEn) return -1;
+                        if (!aEn && bEn) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                    
+                    setVoices(sortedVoices);
+                    if (sortedVoices.length > 0 && !selectedVoiceURI) {
+                         const defaultVoice = sortedVoices.find(v => v.name.includes('Google US English')) || sortedVoices.find(v => v.lang.includes('en-US')) || sortedVoices[0];
+                         setSelectedVoiceURI(defaultVoice.voiceURI);
+                    }
+                };
+
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+                return () => { window.speechSynthesis.onvoiceschanged = null; };
+            }, [canSpeak, selectedVoiceURI]);
+
+            const shuffleSentences = useCallback((pairs) => {
+                return [...pairs].sort(() => Math.random() - 0.5);
+            }, []);
+
+            const currentPair = useMemo(() => {
+                if (sentences.length === 0) {
+                    return { english: 'Loading...', vietnamese: 'Đang tải...' };
+                }
+                return sentences[currentIndex];
+            }, [sentences, currentIndex]);
+
+            const handleSpeak = useCallback((textToSpeak) => {
+                if (canSpeak && textToSpeak && textToSpeak !== 'Loading...') {
+                    let textWithoutEmoji = textToSpeak;
+                    const lastPunctuationIndex = Math.max(
+                        textToSpeak.lastIndexOf('.'),
+                        textToSpeak.lastIndexOf('!'),
+                        textToSpeak.lastIndexOf('?')
+                    );
+
+                    if (lastPunctuationIndex > -1 && lastPunctuationIndex < textToSpeak.length - 1) {
+                        if (textToSpeak.substring(lastPunctuationIndex + 1).trim().length > 0) {
+                            textWithoutEmoji = textToSpeak.substring(0, lastPunctuationIndex + 1);
+                        }
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(textWithoutEmoji);
+                    utterance.lang = 'en-US';
+                    
+                    if (selectedVoiceURI) {
+                        const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+                        if (voice) utterance.voice = voice;
+                    }
+
+                    utterance.onstart = () => setIsSpeaking(true);
+                    utterance.onend = () => setIsSpeaking(false);
+                    utterance.onerror = () => setIsSpeaking(false);
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, [canSpeak, voices, selectedVoiceURI]);
+
+            const handleTopicSelect = useCallback((topic) => {
+                setSelectedTopic(topic);
+                setSentences(shuffleSentences(topic.pairs));
+                setCurrentIndex(0);
+                setGameState(GameState.READ);
+                setAppState(AppState.PLAY_GAME);
+            }, [shuffleSentences]);
+
+            const handleBackToTopics = useCallback(() => {
+                setAppState(AppState.SELECT_TOPIC);
+                setSelectedTopic(null);
+                setSentences([]);
+            }, []);
+            
+            const handleRestart = useCallback(() => {
+                if (selectedTopic) {
+                    setSentences(shuffleSentences(selectedTopic.pairs));
+                    setCurrentIndex(0);
+                    setGameState(GameState.READ);
+                }
+            }, [selectedTopic, shuffleSentences]);
+
+            const handleNextAction = useCallback(() => {
+                window.speechSynthesis.cancel();
+                if (gameState === GameState.READ) {
+                    setGameState(GameState.TRANSLATE);
+                } else if (gameState === GameState.TRANSLATE) {
+                    setGameState(GameState.REVEAL);
+                } else if (gameState === GameState.REVEAL) {
+                    if (currentIndex === sentences.length - 1) {
+                        setGameState(GameState.COMPLETE);
+                    } else {
+                        setCurrentIndex((prevIndex) => prevIndex + 1);
+                        setGameState(GameState.READ);
+                    }
+                }
+            }, [gameState, sentences.length, currentIndex]);
+            
+            const handlePreviousAction = useCallback(() => {
+                window.speechSynthesis.cancel();
+                // Reverse the flow: READ (next) -> REVEAL (prev) -> TRANSLATE (prev) -> READ (prev)
+                
+                if (gameState === GameState.READ) {
+                    if (currentIndex > 0) {
+                        setCurrentIndex(prev => prev - 1);
+                        setGameState(GameState.REVEAL);
+                    }
+                } else if (gameState === GameState.REVEAL) {
+                    setGameState(GameState.TRANSLATE);
+                } else if (gameState === GameState.TRANSLATE) {
+                    setGameState(GameState.READ);
+                }
+            }, [gameState, currentIndex]);
+
+            const renderTopicSelection = () => (
+                React.createElement('div', { className: "w-full max-w-6xl mx-auto animate-fade-in" },
+                    React.createElement('header', { className: "text-center py-8" },
+                        React.createElement('h1', { className: "text-3xl sm:text-4xl font-bold text-sky-800" }, "Bilingual Flashcards 🇻🇳🇬🇧"),
+                        React.createElement('p', { className: "text-lg text-slate-600 mt-2" }, "Choose a topic to start practicing!")
+                    ),
+                    React.createElement('div', { className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4" },
+                        TOPICS_DATA.map(topic => (
+                            React.createElement('button', {
+                                key: topic.title,
+                                onClick: () => handleTopicSelect(topic),
+                                className: "bg-white/70 backdrop-blur-md p-4 rounded-lg shadow-md hover:shadow-xl text-slate-800 font-semibold text-center transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+                            }, topic.title)
+                        ))
+                    )
+                )
+            );
+
+            const renderGame = () => {
+                const progress = sentences.length > 0 ? ((currentIndex + 1) / sentences.length) * 100 : 0;
+                const progressText = sentences.length > 0 ? `${currentIndex + 1} / ${sentences.length}` : '0 / 0';
+                const buttonText = (() => {
+                     switch (gameState) {
+                        case GameState.READ: return "Practice Translation";
+                        case GameState.TRANSLATE: return "Show English Answer";
+                        case GameState.REVEAL: return "Next Sentence →";
+                        default: return "Next";
+                    }
+                })();
+                
+                const canGoBack = !(currentIndex === 0 && gameState === GameState.READ);
+
+                return (
+                    React.createElement('div', { className: "w-full max-w-4xl flex-grow flex flex-col animate-fade-in" },
+                        React.createElement('header', { className: "text-center py-4 relative flex flex-col items-center" },
+                             React.createElement('div', { className: "w-full flex justify-between items-center mb-2 px-2 sm:px-0" },
+                                React.createElement('button', {
+                                    onClick: handleBackToTopics,
+                                    className: "text-indigo-600 hover:text-indigo-800 font-semibold transition-colors duration-200 p-2 rounded-md hover:bg-indigo-100 flex items-center"
+                                }, "← Topics"),
+                                canSpeak && voices.length > 0 && React.createElement('div', { className: "flex items-center gap-2" },
+                                    React.createElement('span', { className: "text-xs text-slate-500 font-medium hidden sm:inline" }, "Voice:"),
+                                    React.createElement('select', {
+                                        value: selectedVoiceURI || '',
+                                        onChange: (e) => setSelectedVoiceURI(e.target.value),
+                                        className: "text-sm border border-slate-300 rounded-md p-1 bg-white/80 max-w-[150px] sm:max-w-xs truncate focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    }, 
+                                        voices.map(v => React.createElement('option', { key: v.voiceURI, value: v.voiceURI }, v.name))
+                                    )
+                                )
+                             ),
+                            React.createElement('h1', { className: "text-2xl sm:text-3xl font-bold text-sky-800 px-8" }, selectedTopic?.title || "Bilingual Flashcards"),
+                            React.createElement('p', { className: "text-lg text-slate-600 mt-1" }, "English & Vietnamese Practice")
+                        ),
+                        
+                        React.createElement('div', { className: "w-full my-4" },
+                            React.createElement('div', { className: "flex justify-between items-center text-sm text-slate-600 mb-1 px-1" },
+                                React.createElement('span', null, "Progress"),
+                                React.createElement('span', { className: "font-medium" }, gameState === GameState.COMPLETE ? `Complete! 🎉` : progressText)
+                            ),
+                            React.createElement('div', { className: "w-full h-3 bg-slate-300/80 rounded-full overflow-hidden" },
+                                React.createElement('div', {
+                                    className: "h-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-500 ease-out",
+                                    style: { width: `${gameState === GameState.COMPLETE ? 100 : progress}%` }
+                                })
+                            )
+                        ),
+
+                        React.createElement('div', { className: "flex-grow flex items-center justify-center" },
+                            React.createElement('div', { className: "bg-white/70 backdrop-blur-md rounded-2xl shadow-lg p-6 sm:p-10 md:p-12 w-full text-center flex flex-col justify-center min-h-[350px] md:min-h-[450px]" },
+                                gameState === GameState.READ && (
+                                    React.createElement('div', { className: "space-y-6 animate-fade-in" },
+                                        React.createElement('div', null,
+                                            React.createElement('p', { className: "text-sm font-medium text-indigo-600 mb-2" }, "READ (Tiếng Anh)"),
+                                            React.createElement('div', { className: "flex items-center justify-center gap-x-4" },
+                                                React.createElement('p', { className: "text-3xl md:text-5xl font-semibold text-slate-900" }, currentPair.english),
+                                                canSpeak && React.createElement('button', { onClick: () => handleSpeak(currentPair.english), disabled: isSpeaking, className: `p-3 rounded-full transition-all duration-200 disabled:cursor-wait ${isSpeaking ? 'text-sky-600 bg-sky-100 animate-pulse' : 'text-slate-500 hover:bg-sky-100'}`, 'aria-label': "Read sentence aloud" }, React.createElement(SpeakerIcon, { className: "h-7 w-7" }))
+                                            )
+                                        ),
+                                        React.createElement('hr', { className: "border-slate-300 w-1/4 mx-auto" }),
+                                        React.createElement('div', null,
+                                            React.createElement('p', { className: "text-sm text-slate-500 mb-2" }, "TRANSLATION (Tiếng Việt)"),
+                                            React.createElement('p', { className: "text-xl md:text-3xl text-slate-700" }, currentPair.vietnamese)
+                                        )
+                                    )
+                                ),
+                                gameState === GameState.TRANSLATE && (
+                                    React.createElement('div', { className: "space-y-4 animate-fade-in" },
+                                        React.createElement('p', { className: "text-sm font-medium text-indigo-600 mb-2" }, "TRANSLATE THIS TO ENGLISH"),
+                                        React.createElement('p', { className: "text-3xl md:text-5xl font-semibold text-slate-900" }, currentPair.vietnamese)
+                                    )
+                                ),
+                                gameState === GameState.REVEAL && (
+                                     React.createElement('div', { className: "space-y-6 animate-fade-in" },
+                                        React.createElement('div', null,
+                                            React.createElement('p', { className: "text-sm text-slate-500 mb-2" }, "YOUR SENTENCE (Tiếng Việt)"),
+                                            React.createElement('p', { className: "text-xl md:text-3xl text-slate-700" }, currentPair.vietnamese)
+                                        ),
+                                        React.createElement('hr', { className: "border-slate-300 w-1/4 mx-auto" }),
+                                        React.createElement('div', null,
+                                            React.createElement('p', { className: "text-sm font-medium text-indigo-600 mb-2" }, "CORRECT ANSWER (Tiếng Anh)"),
+                                             React.createElement('div', { className: "flex items-center justify-center gap-x-4" },
+                                                React.createElement('p', { className: "text-3xl md:text-5xl font-semibold text-slate-900" }, currentPair.english),
+                                                canSpeak && React.createElement('button', { onClick: () => handleSpeak(currentPair.english), disabled: isSpeaking, className: `p-3 rounded-full transition-all duration-200 disabled:cursor-wait ${isSpeaking ? 'text-sky-600 bg-sky-100 animate-pulse' : 'text-slate-500 hover:bg-sky-100'}`, 'aria-label': "Read sentence aloud" }, React.createElement(SpeakerIcon, { className: "h-7 w-7" }))
+                                            )
+                                        )
+                                    )
+                                ),
+                                gameState === GameState.COMPLETE && (
+                                     React.createElement('div', { className: "space-y-4 animate-fade-in text-center" },
+                                        React.createElement('p', { className: "text-6xl md:text-7xl" }, "🎉"),
+                                        React.createElement('h2', { className: "text-3xl md:text-4xl font-bold text-sky-800" }, "Topic Complete!"),
+                                        React.createElement('p', { className: "text-lg text-slate-600" }, "You've finished all sentences for this topic."),
+                                        React.createElement('div', { className: "flex flex-col sm:flex-row items-center justify-center gap-4 mt-8" },
+                                            React.createElement('button', {
+                                                onClick: handleRestart,
+                                                className: "w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-lg py-3 px-6 rounded-full shadow-lg hover:shadow-indigo-500/50 transform hover:-translate-y-1 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-300"
+                                            }, "Play Topic Again 🔄"),
+                                            React.createElement('button', {
+                                                onClick: handleBackToTopics,
+                                                className: "w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-bold text-lg py-3 px-6 rounded-full shadow-lg hover:shadow-sky-500/50 transform hover:-translate-y-1 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-sky-300"
+                                            }, "Choose Another Topic 📚")
+                                        )
+                                     )
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: "sticky bottom-0 py-4 mt-auto bg-slate-100/50 backdrop-blur-sm -mx-4 px-4 sm:-mx-6 sm:px-6 flex gap-3 justify-center" },
+                           gameState !== GameState.COMPLETE && React.createElement(React.Fragment, null,
+                               React.createElement('button', {
+                                    onClick: handlePreviousAction,
+                                    disabled: !canGoBack,
+                                    className: "flex-1 max-w-[120px] bg-slate-300 hover:bg-slate-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 font-bold text-lg py-4 px-4 rounded-full shadow-md transition-all duration-300 ease-in-out"
+                                }, "⬅ Back"),
+                                React.createElement('button', {
+                                    onClick: handleNextAction,
+                                    disabled: sentences.length === 0,
+                                    className: "flex-[2] max-w-md bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-lg py-4 px-8 rounded-full shadow-lg hover:shadow-indigo-500/50 transform hover:-translate-y-1 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-300"
+                                }, buttonText)
+                           )
+                        )
+                    )
+                );
+            }
+
+            return (
+                React.createElement('main', { className: "min-h-screen bg-gradient-to-br from-slate-100 to-sky-200 text-slate-800 flex flex-col items-center justify-center p-4 sm:p-6 font-sans" },
+                   appState === AppState.SELECT_TOPIC ? renderTopicSelection() : renderGame()
+                )
+            );
+        };
+        
+        const rootElement = document.getElementById('root');
+        if (!rootElement) {
+          throw new Error("Could not find root element to mount to");
+        }
+
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(
+          React.createElement(React.StrictMode, null, React.createElement(App, null))
+        );
+    </script>
+</body>
+</html>
